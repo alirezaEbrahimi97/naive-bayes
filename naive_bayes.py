@@ -87,12 +87,23 @@ def add_date_options(df):
     df['day'] = np.array(list(map(lambda x: x.day, df['date'])))
     df['day_of_week'] = np.array(list(map(lambda x: x % 7, df['day'])))
     return df
+
+def merge_name(name1, name2): 
+  return name1 + '&'+name2
+
+def mix_columns(src, tar, data):
+    data[src + "&" + tar] = data[src] * (max(data[tar].values) - min(data[tar].values)) + data[tar]
+    return data
+
 # store the feature matrix (X) and response vector (y)
 df = pd.read_csv("train_sample.csv")
 df = add_time(df)
 df = add_date_options(df)
+data = mix_columns('os','device',df)
+data = mix_columns('os','app',df)
+data = mix_columns('app','device',df)
 df['ip'] = df['ip'] // 1000
-X = df[['ip', 'app' ,'device', 'os', 'channel', 'time', 'day', 'year', 'month', 'day_of_week']].values
+X = df[['ip', 'app' ,'device', 'os', 'channel', 'time', 'day', 'year', 'month', 'day_of_week', merge_name('os', 'device'), merge_name('os', 'app'), merge_name('app', 'device')]].values
 y = df['is_attributed'].values
 
 
