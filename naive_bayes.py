@@ -92,7 +92,7 @@ df = pd.read_csv("train_sample.csv")
 df = add_time(df)
 df = add_date_options(df)
 df['ip'] = df['ip'] // 1000
-X = df[['ip', 'app' ,'device', 'os', 'channel', 'time']].values
+X = df[['ip', 'app' ,'device', 'os', 'channel', 'time', 'day', 'year', 'month', 'day_of_week']].values
 y = df['is_attributed'].values
 
 
