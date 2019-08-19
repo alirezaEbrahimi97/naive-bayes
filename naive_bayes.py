@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split 
 from sklearn.naive_bayes import MultinomialNB
 from sklearn import metrics
+from tqdm import tqdm
 
 def plot_confusion_matrix(y_true, y_pred, classes,
                           normalize=False,
@@ -98,7 +99,44 @@ def mix_columns(src, tar, data):
     data[src + "&" + tar] = data[src] * (max(data[tar].values) - min(data[tar].values)) + data[tar]
     return data
 
+def train_data(X, y, gnb):
+    gnb.partial_fit(X, y, classes=np.array([0, 1]))
+    return gnb
+
+def test_data(X_test, y_test, gnb):
+    y_pred = gnb.predict(X_test) 
+    # comparing actual response values (y_test) with predicted response values (y_pred)  
+    acc = metrics.accuracy_score(y_test, y_pred)*100
+    f_n, f_p = (false_mean(y_pred, y_test))
+    return 1 - f_n / (y_test == 1).sum(), 1 - f_p /(y_test == 0).sum(), acc
+
+def stream_data(gnb):
+    i = 0
+    Data = pd.DataFrame()
+    for chunk in tqdm(pd.read_csv ("train.csv.zip", chunksize = 100000)):
+        print(i)
+        if i > 10:
+            df = chunk
+            df = add_time(df)
+            df = add_date_options(df)
+            data = mix_columns('os','device',df)
+            data = mix_columns('os','app',df)
+            data = mix_columns('app','device',df)
+            df['ip'] = df['ip'] // 1000
+            #X = df[['ip', 'app','device', 'os', 'channel', 'time', 'day_of_week', merge_name('os', 'device'), merge_name('os', 'app'), merge_name('app', 'device'), 'channel', 'app']].values
+            X = df[['ip', 'app','device', 'os', 'channel', 'time']].values
+            y = df['is_attributed'].values
+            gnb = train_data(X, y, gnb)
+        i += 1
+        if i > 20:
+            break
+    return gnb
+
+    
 # store the feature matrix (X) and response vector (y)
+gnb = MultinomialNB()
+gnb = stream_data(gnb)
+
 df = pd.read_csv("train_sample.csv")
 df = add_time(df)
 df = add_date_options(df)
@@ -106,7 +144,6 @@ data = mix_columns('os','device',df)
 data = mix_columns('os','app',df)
 data = mix_columns('app','device',df)
 df['ip'] = df['ip'] // 1000
-X = df[['ip', 'app','device', 'os', 'channel', 'time', 'day_of_week', merge_name('os', 'device'), merge_name('os', 'app'), merge_name('app', 'device'), 'channel', 'app']].values
+#X = df[['ip', 'app','device', 'os', 'channel', 'time', 'day_of_week', merge_name('os', 'device'), merge_name('os', 'app'), merge_name('app', 'device'), 'channel', 'app']].values
+X = df[['ip', 'app','device', 'os', 'channel', 'time']].values
 y = df['is_attributed'].values
-
-
