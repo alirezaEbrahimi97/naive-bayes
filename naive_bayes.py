@@ -110,40 +110,41 @@ def test_data(X_test, y_test, gnb):
     f_n, f_p = (false_mean(y_pred, y_test))
     return 1 - f_n / (y_test == 1).sum(), 1 - f_p /(y_test == 0).sum(), acc
 
+def set_data(df):
+    df = add_time(df)
+    df = add_date_options(df)
+    data = mix_columns('os','device',df)
+    data = mix_columns('os','app',df)
+    data = mix_columns('app','device',df)
+    df['ip'] = df['ip'] // 1000
+    df['app_1'] = df['app']
+    df['channel_1'] = df['channel']
+    df['app_os'] = (df['app'].astype(str).values+'.'+df['os'].astype(str).values).astype(float)
+    df['app_channel'] = (df['app'].astype(str).values+'.'+df['channel'].astype(str).values).astype(float)
+    df['os_channel'] = (df['os'].astype(str).values+'.'+df['channel'].astype(str).values).astype(float)
+    return df
+
 def stream_data(gnb):
     i = 0
-    Data = pd.DataFrame()
     for chunk in tqdm(pd.read_csv ("train.csv.zip", chunksize = 100000)):
         print(i)
         if i > 10:
-            df = chunk
-            df = add_time(df)
-            df = add_date_options(df)
-            data = mix_columns('os','device',df)
-            data = mix_columns('os','app',df)
-            data = mix_columns('app','device',df)
-            df['ip'] = df['ip'] // 1000
+            df = set_data(chunk)
             #X = df[['ip', 'app','device', 'os', 'channel', 'time', 'day_of_week', merge_name('os', 'device'), merge_name('os', 'app'), merge_name('app', 'device'), 'channel', 'app']].values
-            X = df[['ip', 'app','device', 'os', 'channel', 'time']].values
+            X = df[['ip', 'app','device', 'os', 'channel', 'time', 'app_1', 'channel_1', 'app_os', 'app_channel', 'os_channel']].values
             y = df['is_attributed'].values
             gnb = train_data(X, y, gnb)
         i += 1
-        if i > 20:
+        if i > 60:
             break
     return gnb
 
-    
+
 # store the feature matrix (X) and response vector (y)
 gnb = MultinomialNB()
 gnb = stream_data(gnb)
-
-df = pd.read_csv("train_sample.csv")
-df = add_time(df)
-df = add_date_options(df)
-data = mix_columns('os','device',df)
-data = mix_columns('os','app',df)
-data = mix_columns('app','device',df)
-df['ip'] = df['ip'] // 1000
+data = pd.read_csv("D.csv")
+df = set_data(data)
 #X = df[['ip', 'app','device', 'os', 'channel', 'time', 'day_of_week', merge_name('os', 'device'), merge_name('os', 'app'), merge_name('app', 'device'), 'channel', 'app']].values
-X = df[['ip', 'app','device', 'os', 'channel', 'time']].values
+X = df[['ip', 'app','device', 'os', 'channel', 'time', 'app_1', 'channel_1', 'app_os', 'app_channel', 'os_channel']].values
 y = df['is_attributed'].values
