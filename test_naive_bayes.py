@@ -5,7 +5,7 @@ f_n = []
 f_p = []
 acc = []
 print("f_n  |   f_p   |   acc")
-for i in range(10):
+for i in range(50):
     temp_f_n, temp_f_p, temp_acc = nb.train_and_test(nb.X, nb.y)
     f_n.append(temp_f_n)
     f_p.append(temp_f_p)
