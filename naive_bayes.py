@@ -70,9 +70,12 @@ def draw_plot(y_test, y_pred):
 def train_and_test(X, y):
     # splitting X and y into training and testing sets 
     X_train, X_test, y_train, y_test = set_train_and_test(X, y)
+    #X_train_1, X_train_2, y_train_1, y_train_2 = set_train_and_test(X_train, y_train)
     # training the model on training set 
     gnb = MultinomialNB() 
     gnb.fit(X_train, y_train) 
+    #gnb.partial_fit(X_train_1, y_train_1, classes=np.unique(y_train, return_counts=False))
+    #gnb.partial_fit(X_train_2, y_train_2)
     # making predictions on the testing set 
     y_pred = gnb.predict(X_test) 
     # comparing actual response values (y_test) with predicted response values (y_pred)  
@@ -103,7 +106,7 @@ data = mix_columns('os','device',df)
 data = mix_columns('os','app',df)
 data = mix_columns('app','device',df)
 df['ip'] = df['ip'] // 1000
-X = df[['ip', 'app' ,'device', 'os', 'channel', 'time', 'day', 'year', 'month', 'day_of_week', merge_name('os', 'device'), merge_name('os', 'app'), merge_name('app', 'device')]].values
+X = df[['ip', 'app','device', 'os', 'channel', 'time', 'day', 'year', 'month', 'day_of_week', 'channel', 'app']].values
 y = df['is_attributed'].values
 
 
