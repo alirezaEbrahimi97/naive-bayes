@@ -106,7 +106,7 @@ data = mix_columns('os','device',df)
 data = mix_columns('os','app',df)
 data = mix_columns('app','device',df)
 df['ip'] = df['ip'] // 1000
-X = df[['ip', 'app','device', 'os', 'channel', 'time', 'day', 'year', 'month', 'day_of_week', 'channel', 'app']].values
+X = df[['ip', 'app','device', 'os', 'channel', 'time', 'day_of_week', merge_name('os', 'device'), merge_name('os', 'app'), merge_name('app', 'device'), 'channel', 'app']].values
 y = df['is_attributed'].values
 
 
