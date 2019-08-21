@@ -9,6 +9,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import MultinomialNB
 from sklearn import metrics
 from tqdm import tqdm
+from sklearn import preprocessing
 
 def plot_confusion_matrix(y_true, y_pred, classes,
                           normalize=False,
@@ -93,7 +94,7 @@ def add_date_options(df):
     return df
 
 def merge_name(name1, name2): 
-  return name1 + '&'+name2
+  return name1 + '_'+name2
 
 def mix_columns(src, tar, data):
     data[src + "&" + tar] = data[src] * (max(data[tar].values) - min(data[tar].values)) + data[tar]
@@ -110,41 +111,59 @@ def test_data(X_test, y_test, gnb):
     f_n, f_p = (false_mean(y_pred, y_test))
     return 1 - f_n / (y_test == 1).sum(), 1 - f_p /(y_test == 0).sum(), acc
 
+def normalize_data(df):
+    for col_name in ['ip', 'app','device', 'os', 'channel', 'time', 'app_os', 'app_channel', 'os_channel']:
+        x = df[col_name].values #returns a numpy array
+        mean = np.mean(x)
+        min_x = np.min(x)
+        max_x = np.max(x)
+        var = np.var(x)
+        #df[col_name] = (df[col_name] - mean)/var
+        #min_x = df[col_name].min()
+        #df[col_name] = df[col_name] + min_x + 1
+        df[col_name] = (df[col_name] - min_x) / (max_x - min_x)
+        return df
+
+def one_hot(column_name, df):
+    one_hot_data = pd.get_dummies(df[column_name], prefix=[column_name])
+    return  pd.concat([df, one_hot_data], axis=1)
+
 def set_data(df):
     df = add_time(df)
     df = add_date_options(df)
-    data = mix_columns('os','device',df)
-    data = mix_columns('os','app',df)
-    data = mix_columns('app','device',df)
     df['ip'] = df['ip'] // 1000
     df['app_1'] = df['app']
     df['channel_1'] = df['channel']
     df['app_os'] = (df['app'].astype(str).values+'.'+df['os'].astype(str).values).astype(float)
     df['app_channel'] = (df['app'].astype(str).values+'.'+df['channel'].astype(str).values).astype(float)
     df['os_channel'] = (df['os'].astype(str).values+'.'+df['channel'].astype(str).values).astype(float)
+    df['app_device'] = (df['app'].astype(str).values+'.'+df['device'].astype(str).values).astype(float)
+    df['os_device'] = (df['os'].astype(str).values+'.'+df['device'].astype(str).values).astype(float)
+    df = one_hot('day_of_week', df)
+    #df = normalize_data(df)
     return df
 
 def stream_data(gnb):
     i = 0
-    for chunk in tqdm(pd.read_csv ("train.csv.zip", chunksize = 100000)):
+    for chunk in tqdm(pd.read_csv ("train.csv.zip", chunksize = 1000000)):
         print(i)
-        if i > 10:
-            df = set_data(chunk)
-            #X = df[['ip', 'app','device', 'os', 'channel', 'time', 'day_of_week', merge_name('os', 'device'), merge_name('os', 'app'), merge_name('app', 'device'), 'channel', 'app']].values
-            X = df[['ip', 'app','device', 'os', 'channel', 'time', 'app_1', 'channel_1', 'app_os', 'app_channel', 'os_channel']].values
-            y = df['is_attributed'].values
-            gnb = train_data(X, y, gnb)
+        #if i > 10:
+        df = set_data(chunk)
+        #X = df[['ip', 'app','device', 'os', 'channel', 'time', 'day_of_week', merge_name('os', 'device'), merge_name('os', 'app'), merge_name('app', 'device'), 'channel', 'app']].values
+        X = df[['ip', 'app','device', 'os', 'channel', 'time', 'app_os', 'app_channel', 'os_channel', 'day', 'month', 'year', 'day_of_week', merge_name('app', 'os'), merge_name('app', 'device'), merge_name('os', 'device')]].values
+        y = df['is_attributed'].values
+        gnb = train_data(X, y, gnb)
         i += 1
-        if i > 60:
-            break
+        #if i > 60:
+        #    break
     return gnb
 
 
 # store the feature matrix (X) and response vector (y)
 gnb = MultinomialNB()
 gnb = stream_data(gnb)
-data = pd.read_csv("D.csv")
+data = pd.read_csv("train_sample.csv")
 df = set_data(data)
 #X = df[['ip', 'app','device', 'os', 'channel', 'time', 'day_of_week', merge_name('os', 'device'), merge_name('os', 'app'), merge_name('app', 'device'), 'channel', 'app']].values
-X = df[['ip', 'app','device', 'os', 'channel', 'time', 'app_1', 'channel_1', 'app_os', 'app_channel', 'os_channel']].values
+X = df[['ip', 'app','device', 'os', 'channel', 'time', 'app_os', 'app_channel', 'os_channel', 'day', 'month', 'year', 'day_of_week', merge_name('app', 'os'), merge_name('app', 'device'), merge_name('os', 'device')]].values
 y = df['is_attributed'].values
