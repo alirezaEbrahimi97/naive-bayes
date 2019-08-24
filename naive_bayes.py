@@ -157,15 +157,15 @@ def set_data(df, unq):
     df = add_time(df)
     df = add_date_options(df)
     df['ip'] = df['ip'] // 1000
-    df['app_1'] = df['app']
-    df['channel_1'] = df['channel']
+    #df['app_1'] = df['app']
+    #df['channel_1'] = df['channel']
     df['app_os'] = (df['app'].astype(str).values+'.'+df['os'].astype(str).values).astype(float)
     df['app_channel'] = (df['app'].astype(str).values+'.'+df['channel'].astype(str).values).astype(float)
     df['os_channel'] = (df['os'].astype(str).values+'.'+df['channel'].astype(str).values).astype(float)
     df['app_device'] = (df['app'].astype(str).values+'.'+df['device'].astype(str).values).astype(float)
     df['os_device'] = (df['os'].astype(str).values+'.'+df['device'].astype(str).values).astype(float)
-    for key in unq.keys():
-        df = one_hot(key, df, unq[key].tolist())
+    #for key in unq.keys():
+    #    df = one_hot(key, df, unq[key].tolist())
     #df = one_hot('day_of_week', df)
     #df = normalize_data(df)
     return df
@@ -181,30 +181,43 @@ def set_x_list(df):
 
 def stream_data(gnb, unq):
     i = 0
+    df_test = pd.DataFrame()
     for chunk in tqdm(pd.read_csv ("train.csv.zip", chunksize = 100000)):
         print(i)
-        if i > 10:
-            df = set_data(chunk, unq)
-            head_list = set_x_list(df)
-            #X = df[['ip', 'app','device', 'os', 'channel', 'time', 'day_of_week', merge_name('os', 'device'), merge_name('os', 'app'), merge_name('app', 'device'), 'channel', 'app']].values
-            X = df[['ip', 'app','device', 'os', 'channel', 'time', 'day', 'month', 'year', 'day_of_week', merge_name('app', 'os'), merge_name('app', 'device'), merge_name('os', 'device')]].values
-            y = df['is_attributed'].values
-            gnb = train_data(X, y, gnb)
+        #if i > 10:
+        df = set_data(chunk, unq)
+        test_data = df.sample(frac = 0.2)
+        merged = df.merge(test_data, how='left', indicator=True)
+        df = (merged[merged['_merge'] == 'left_only']).drop(['_merge'], axis=1)
+        #df = train_data
+        df_test.append(test_data)
+        #X = df[['ip', 'app','device', 'os', 'channel', 'time', 'day_of_week', merge_name('os', 'device'), merge_name('os', 'app'), merge_name('app', 'device'), 'channel', 'app']].values
+        X = df[['ip', 'app','device', 'os', 'channel', 'time', 'day', 'month', 'year', 'day_of_week', merge_name('app', 'os'), merge_name('app', 'device'), merge_name('os', 'device')]].values
+        y = df['is_attributed'].values
+        gnb = train_data(X, y, gnb)
         i += 1
-        if i > 20:
-            break
-    return gnb
+        #if i > 20:
+        #    break
+    return gnb, df_test
 
 def write_unq_to_csv(unq):
     for key in unq.keys():
         df = pd.DataFrame({key : unq[key].tolist()})
         df.to_csv(key + "_unq.csv")
 
+def get_all_uniqe_from_file():
+    unq = {}
+    for col_name in ['time', 'app', 'os', 'device', 'channel']:
+        df = pd.read_csv(col_name + "_unq.csv")
+        unq[col_name] = df[col_name].values
+    return unq
 # store the feature matrix (X) and response vector (y)
 gnb = MultinomialNB()
-unq = get_all_uniqe()
+#unq = get_all_uniqe()
+unq = get_all_uniqe_from_file()
 #write_unq_to_csv(unq)
-gnb = stream_data(gnb, unq)
+gnb, df_test = stream_data(gnb, unq)
+data = df_test
 data = pd.read_csv("train_sample.csv")
 df = set_data(data, unq)
 #X = df[['ip', 'app','device', 'os', 'channel', 'time', 'day_of_week', merge_name('os', 'device'), merge_name('os', 'app'), merge_name('app', 'device'), 'channel', 'app']].values
